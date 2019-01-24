@@ -6,6 +6,7 @@ sys.path.append('/usr/local/lib/python3.5/dist-packages')
 import cv2 as cv
 import numpy as np
 import imutils
+from imutils import perspective
 
 window_capture_name = 'Video Capture'
 window_detection_name = 'Object Detection'
@@ -30,6 +31,8 @@ dilateKernel = np.ones((0,0), np.uint8)
 cv.namedWindow(window_capture_name)
 cv.namedWindow(window_detection_name)
 
+centers = []
+
 while True:
 
 	ret, frame = cap.read()
@@ -47,7 +50,9 @@ while True:
 	cnts = cv.findContours(frame_threshold.copy(), cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
 	cnts = imutils.grab_contours(cnts)
 
-
+	#x1, y1, x2, y2, x3, y3, x4, y4
+	lines = [0,0,0,0,0,0,0,0]
+	
 	for c in cnts:
 		#if contour is too small, ignore
 		area = cv.contourArea(c)
@@ -55,20 +60,65 @@ while True:
 		if area > bounding_area_min:		
 			#Draw bounding boxes
 			rect = cv.minAreaRect(c)
-			box = cv.boxPoints(rect)		
+			box = cv.boxPoints(rect)
 			ctr = np.array(box).reshape((-1,1,2)).astype(np.int32)
+			#vertices = perspective.order_points(ctr)
+			
 			cv.drawContours(frame, [ctr], -1, (255, 0, 0), 2)
 			
 			#compute center of contours
 			M = cv.moments(c)
 			cX = int(M['m10'] / M['m00'])
 			cY = int(M['m01'] / M['m00'])
+			centers.append([cX, cY])
 
+			rows,cols = frame.shape[:2]
+			[vx,vy,x,y] = cv.fitLine(c, cv.DIST_L2, 0, 0.01, 0.01)
+			lefty = int((-x * vy/vx) + y)
+			righty = int(((cols - x) * vy/vx) + y)
+			cv.line(frame, (cols - 1, righty), (0, lefty), (0, 255, 0), 2)
+			
+			if lines[0] == 0:
+				lines.insert(0, cols - 1)
+				lines.insert(1, righty)
+				lines.insert(2, 0)
+				lines.insert(3, lefty)
+			else:
+				lines.insert(4, cols - 1)
+				lines.insert(5, righty)
+				lines.insert(6, 0)
+				lines.insert(7, lefty)
+
+			
+
+			#Label left and right tapes
+			#centerPointsX.append(cv.Point(cX, cY))
+			'''for p in vertices:
+				left = None
+				right = None
+				topLeft = p[0]
+				topLeftY = topLeft[1]
+				topRight = p[1]
+				topRightY = topRight[1]
+				if topLeftY > topRightY:
+					left = True
+				if topRightY > topLeftY:
+					right = True
+				if left != None:
+					print('left')
+				
 			#draw center of contours
-			cv.circle(frame, (cX, cY), 7, (255, 0, 0), -1)
+			cv.circle(frame, (cX, cY), 7, (255, 0, 0), -1)'''
 
 			
-			
+	if lines[7] != 0:
+		u = ((lines[6] - lines[4]) * (lines[1]-lines[5]) - (lines[7] - lines[5])*(lines[0] - lines[4]))/((lines[7] - lines[5])*(lines[2] - lines[0]) - (lines[6] - lines[4])*(lines[3]-lines[1]))
+		x = (cols-1) + u * (0 - (cols - 1))
+		xCoord = int(x)
+		y = righty + u * (lefty - righty)
+		yCoord = int(y)
+		cv.circle(frame, (xCoord,yCoord), 7, (0,0,255), -1)
+		print(xCoord)
 
 	#Making windows
 	cv.imshow(window_capture_name, frame)
