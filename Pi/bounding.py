@@ -7,6 +7,9 @@ import cv2 as cv
 import numpy as np
 import imutils
 from imutils import perspective
+from networktables import NetworkTables
+
+NetworkTables.initialize(server='roborio-XXX-frc.local')
 
 window_capture_name = 'Video Capture'
 window_detection_name = 'Object Detection'
@@ -55,9 +58,7 @@ while True:
 	cnts = cv.findContours(frame_threshold.copy(), cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
 	cnts = imutils.grab_contours(cnts)
 
-	#x1, y1, x2, y2, x3, y3, x4, y4
 	lines = []
-	print(cnts)
 	(cnts, boundingBoxes) = sort_contours(cnts)	
 	for c in cnts:
 		#if contour is too small, ignore
@@ -99,14 +100,14 @@ while True:
 	yCoordTwo = 0
 	xCoord = 0 
 	xCoordTwo = 0
-	if len(lines) > 7 and len(lines) < 13:
+	#Finds the intersection between midlines of contours
+	if len(lines) > 7:
 		u = ((lines[6] - lines[4]) * (lines[1]-lines[5]) - (lines[7] - lines[5])*(lines[0] - lines[4]))/((lines[7] - lines[5])*(lines[2] - lines[0]) - (lines[6] - lines[4])*(lines[3]-lines[1]))
 		x = (cols-1) + u * (0 - (cols - 1))
 		xCoord = int(x)
 		y = righty + u * (lefty - righty)
 		yCoord = int(y)
 		cv.circle(frame, (xCoord,yCoord), 7, (0,0,255), -1)
-		#print(xCoord)
 	if len(lines) > 12:
 		u = ((lines[13] - lines[11]) * (lines[8]-lines[12]) - (lines[14] - lines[12])*(lines[7] - lines[11]))/((lines[14] - lines[12])*(lines[9] - lines[7]) - (lines[13] - lines[11])*(lines[10]-lines[8]))
 		xTwo = (cols-1) + u * (0 - (cols - 1))
@@ -114,13 +115,11 @@ while True:
 		yTwo = righty + u * (lefty - righty)
 		yCoordTwo = int(y)
 		cv.circle(frame, (xCoordTwo, yCoordTwo), 7, (0,0,255), -1)
-		#print(xCoordTwo)
 	if yCoord > yCoordTwo:
 		print(xCoord)
 	else:
 		print(xCoordTwo)
 		
-
 	#Making windows
 	cv.imshow(window_capture_name, frame)
 	cv.imshow(window_detection_name, frame_threshold)

@@ -7,6 +7,10 @@ import cv2 as cv
 import numpy as np
 import imutils
 from imutils import perspective
+from networktables import NetworkTables
+
+NetworkTables.initialize(server='10.13.89.2')
+table = NetworkTables.getTable('vision')
 
 window_capture_name = 'Video Capture'
 window_detection_name = 'Object Detection'
@@ -90,8 +94,7 @@ while True:
 				lines.append(cols - 1)
 				lines.append(righty)
 				lines.append(0)
-				lines.append(lefty)
-			
+				lines.append(lefty)		
 
 	yCoord = 0
 	yCoordTwo = 0
@@ -113,9 +116,9 @@ while True:
 		yCoordTwo = int(y)
 		cv.circle(frame, (xCoordTwo, yCoordTwo), 7, (0,0,255), -1)
 	if yCoord > yCoordTwo:
-		print(xCoord)
+		table.putNumber("X", xCoord)
 	else:
-		print(xCoordTwo)
+		table.putNumber("X", xCoordTwo)
 		
 	#Making windows
 	cv.imshow(window_capture_name, frame)
