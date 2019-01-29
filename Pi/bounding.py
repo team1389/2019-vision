@@ -21,7 +21,7 @@ cap = cv.VideoCapture(args.camera)
 
 #Setting HSV values
 lower = np.array([0, 0, 255])
-upper = np.array([90, 95, 255])
+upper = np.array([90, 180, 255])
 
 #Erosion
 erosionKernel = np.ones((3,3), np.uint8)
@@ -31,8 +31,13 @@ dilateKernel = np.ones((0,0), np.uint8)
 cv.namedWindow(window_capture_name)
 cv.namedWindow(window_detection_name)
 
-centers = []
+def sort_contours(cnts):
 
+	boundingBoxes = [cv.boundingRect(c) for c in cnts]
+	(cnts, boundingBoxes) = zip(*sorted(zip(cnts, boundingBoxes), key = lambda b:b[1][0], reverse=False))
+
+	return (cnts, boundingBoxes)
+	
 while True:
 
 	ret, frame = cap.read()
@@ -44,15 +49,16 @@ while True:
 	frame_threshold = cv.inRange(frame_HSV, lower, upper)
 	frame_threshold = cv.erode(frame_threshold, erosionKernel, iterations =1)
 	frame_threshold = cv.dilate(frame_threshold, dilateKernel, iterations=1)
-	bounding_area_min = 2000
+	bounding_area_min = 1500
 
 	#Finding contours
 	cnts = cv.findContours(frame_threshold.copy(), cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
 	cnts = imutils.grab_contours(cnts)
 
 	#x1, y1, x2, y2, x3, y3, x4, y4
-	lines = [0,0,0,0,0,0,0,0]
-	
+	lines = []
+	print(cnts)
+	(cnts, boundingBoxes) = sort_contours(cnts)	
 	for c in cnts:
 		#if contour is too small, ignore
 		area = cv.contourArea(c)
@@ -66,59 +72,54 @@ while True:
 			
 			cv.drawContours(frame, [ctr], -1, (255, 0, 0), 2)
 			
-			#compute center of contours
-			M = cv.moments(c)
-			cX = int(M['m10'] / M['m00'])
-			cY = int(M['m01'] / M['m00'])
-			centers.append([cX, cY])
-
+			#Drawing lines through the center of contours
 			rows,cols = frame.shape[:2]
 			[vx,vy,x,y] = cv.fitLine(c, cv.DIST_L2, 0, 0.01, 0.01)
 			lefty = int((-x * vy/vx) + y)
 			righty = int(((cols - x) * vy/vx) + y)
 			cv.line(frame, (cols - 1, righty), (0, lefty), (0, 255, 0), 2)
-			
-			if lines[0] == 0:
-				lines.insert(0, cols - 1)
-				lines.insert(1, righty)
-				lines.insert(2, 0)
-				lines.insert(3, lefty)
+			ctr = np.array(box).reshape((-1,1,2)).astype(np.int32)
+ 
+
+			#Saving the line being drawn 			
+			if lines == None:
+				lines.append(cols - 1)
+				lines.append(righty)
+				lines.append(0)
+				lines.append(lefty)
+				print("Length of lines array", len(lines))
 			else:
-				lines.insert(4, cols - 1)
-				lines.insert(5, righty)
-				lines.insert(6, 0)
-				lines.insert(7, lefty)
-
+				lines.append(cols - 1)
+				lines.append(righty)
+				lines.append(0)
+				lines.append(lefty)
 			
 
-			#Label left and right tapes
-			#centerPointsX.append(cv.Point(cX, cY))
-			'''for p in vertices:
-				left = None
-				right = None
-				topLeft = p[0]
-				topLeftY = topLeft[1]
-				topRight = p[1]
-				topRightY = topRight[1]
-				if topLeftY > topRightY:
-					left = True
-				if topRightY > topLeftY:
-					right = True
-				if left != None:
-					print('left')
-				
-			#draw center of contours
-			cv.circle(frame, (cX, cY), 7, (255, 0, 0), -1)'''
-
-			
-	if lines[7] != 0:
+	yCoord = 0
+	yCoordTwo = 0
+	xCoord = 0 
+	xCoordTwo = 0
+	if len(lines) > 7 and len(lines) < 13:
 		u = ((lines[6] - lines[4]) * (lines[1]-lines[5]) - (lines[7] - lines[5])*(lines[0] - lines[4]))/((lines[7] - lines[5])*(lines[2] - lines[0]) - (lines[6] - lines[4])*(lines[3]-lines[1]))
 		x = (cols-1) + u * (0 - (cols - 1))
 		xCoord = int(x)
 		y = righty + u * (lefty - righty)
 		yCoord = int(y)
 		cv.circle(frame, (xCoord,yCoord), 7, (0,0,255), -1)
+		#print(xCoord)
+	if len(lines) > 12:
+		u = ((lines[13] - lines[11]) * (lines[8]-lines[12]) - (lines[14] - lines[12])*(lines[7] - lines[11]))/((lines[14] - lines[12])*(lines[9] - lines[7]) - (lines[13] - lines[11])*(lines[10]-lines[8]))
+		xTwo = (cols-1) + u * (0 - (cols - 1))
+		xCoordTwo = int(x)
+		yTwo = righty + u * (lefty - righty)
+		yCoordTwo = int(y)
+		cv.circle(frame, (xCoordTwo, yCoordTwo), 7, (0,0,255), -1)
+		#print(xCoordTwo)
+	if yCoord > yCoordTwo:
 		print(xCoord)
+	else:
+		print(xCoordTwo)
+		
 
 	#Making windows
 	cv.imshow(window_capture_name, frame)
