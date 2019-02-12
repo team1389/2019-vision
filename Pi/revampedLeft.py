@@ -35,6 +35,8 @@ window_detection_name = 'Object Detection'
 cv.namedWindow(window_capture_name)
 cv.namedWindow(window_detection_name)
 
+window_width = 640
+window_height = 480
 #Sorts contours from left to right
 def sort_contours(cnts):
 
@@ -55,7 +57,7 @@ while True:
 	frame_threshold = cv.inRange(frame_HSV, lower, upper)
 	frame_threshold = cv.erode(frame_threshold, erosionKernel, iterations =1)
 	frame_threshold = cv.dilate(frame_threshold, dilateKernel, iterations=1)
-	bounding_area_min = 1500
+	bounding_area_min = 3000 #4150
 
 	#Finding contours
 	cnts = cv.findContours(frame_threshold.copy(), cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
@@ -67,6 +69,7 @@ while True:
 	#If there are no contours, then return 320
 	if len(cnts) == 0:
 		table.putNumber("X", 320)
+		print("nothing detected")
 
 	if len(cnts) > 0:
 		(cnts, boundingBoxes) = sort_contours(cnts)	
@@ -87,6 +90,8 @@ while True:
 				[vx,vy,x,y] = cv.fitLine(c, cv.DIST_L2, 0, 0.01, 0.01)
 				lefty = int((-x * vy/vx) + y)
 				righty = int(((cols - x) * vy/vx) + y)
+				print("lefty = " + str(lefty))
+				print("righty = " + str(righty))
 				cv.line(frame, (cols - 1, righty), (0, lefty), (0, 255, 0), 2)
 				ctr = np.array(box).reshape((-1,1,2)).astype(np.int32)
 	 
@@ -104,10 +109,11 @@ while True:
 					lines.append(0)
 					lines.append(lefty)		
 
-		yCoord = 0
-		yCoordTwo = 0
-		xCoord = 320 
-		xCoordTwo = 320
+		#setting defaults		
+		yCoord = window_height
+		yCoordTwo = window_height
+		xCoord = window_width/2 
+		xCoordTwo = window_width/2
 
 		#Finds the intersection between midlines of contours
 		if len(lines) > 7:
@@ -115,39 +121,53 @@ while True:
 
 			y = righty + u * (lefty - righty)
 			yCoord = int(y)
-			if yCoord < lines[0]:
+			#if yCoord < lines[0]:
+			if yCoord < window_height:
+				
 				x = (cols-1) + u * (0 - (cols - 1))
 				xCoord = int(x)
 				cv.circle(frame, (xCoord,yCoord), 7, (0,0,255), -1)
+				cv.circle(frame, (xCoord,240), 7, (255,0,255), -1)
+			else:
+				print("excluding because of height")
 
 
 		'''
-		two current issues, #1 is that it can't detect the contour if the pair is on the left and third is on right. 
-		#2 is that it places the intersection underneath on top. This is a problem w/ how we find u for the third contour
-
+		two current known issues, #1 is that it can't detect the contour if the pair is on the left and third is on right. 
+		#2 is that it places the intersection underneath on top. This is a problem w/ how we find u for the third contour.The 			fail case for the previously described case is the one where xCoord is not changed
 		good to know: lines[] 0,0, starts from bottom left while xcoord, ycoord 0,0 starts from top left
 		on previous code, u calculation for third contour was also f'ed up
 		'''
 		#look at calculations for u for this one, causes point to be displayed on other line
 		if len(lines) > 11:
-			u = ((lines[10] - lines[8]) * (lines[5]-lines[9]) - (lines[11] - lines[9])*(lines[4] - lines[8]))/((lines[11] - lines[9])*(lines[6] - lines[4]) - (lines[10] - lines[8])*(lines[7]-lines[5]))
+			uRight = ((lines[10] - lines[8]) * (lines[5]-lines[9]) - (lines[11] - lines[9])*(lines[4] - lines[8]))/((lines[11] - lines[9])*(lines[6] - lines[4]) - (lines[10] - lines[8])*(lines[7]-lines[5]))
 
-			yTwo = righty + u * (lefty - righty)
+			yTwo = righty + uRight * (lefty - righty)
 			yCoordTwo = int(yTwo)
-			if yCoordTwo < lines[8]:
-				xTwo = (cols-1) + u * (0 - (cols - 1))
+			if yCoordTwo < window_height:
+				xTwo = (cols-1) + uRight * (0 - (cols - 1))
 				xCoordTwo = int(xTwo)
 				cv.circle(frame, (xCoordTwo,yCoordTwo), 7, (0,0,255), -1)
+				cv.circle(frame, (xCoordTwo,240), 7, (255,0,255), -1)
+			else:
+				print("excluding because of height")
 
 		#calculations for coord for lines array has 0,0 start from bottom left, ycoord starts from top left, weird lol
-		if yCoordTwo > yCoord:
+		if yCoordTwo < yCoord:
 			table.putNumber("X", xCoordTwo)
-			print(xCoordTwo)
+			'''print("x coord " + str(xCoord))
+			print("y coord " + str(yCoord))
+			print("xcoord two " + str(xCoordTwo))
+			print("y coord two " + str(yCoordTwo))'''
+			
 			
 		else:
+			'''print("no xcoord change or only xcoord")
 			table.putNumber("X", xCoord)
-			print(xCoord)
-			
+			print("x coord " + str(xCoord))
+			print("y coord " + str(yCoord))'''
+
+		cv.circle(frame, (0,0), 7, (0,0,255), -1)
 	#Making windows
 	cv.imshow(window_capture_name, frame)
 	cv.imshow(window_detection_name, frame_threshold)
