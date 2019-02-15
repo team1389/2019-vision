@@ -68,58 +68,77 @@ def get_centers(cnt, frame, centers):
 	cv.circle(frame, (cx, cy), 10, (0, 0, 255), -1)
 	centers.append(cx)
 
-def get_centers_bisect(centers):
-	bisect = (centers[0] + centers[1] / 2)
-	cv.circle(frame, (bisect, int(window_height/2)), 10, (0, 255, 255), -1)
-	return bisect
+def get_centers_bisect(cnt1, cnt2):
+	bisect = ((cnt1 + cnt2) / 2)
+	cv.circle(frame, (int(bisect), int(window_height/2)), 10, (0, 255, 255), -1)
+	table.putNumber("X", bisect)
 	
+def sort_side(angle, contourIndex):
+	if (angle>= -45):
+		right.append(contourIndex)
+	else:
+		left.append(contourIndex)
+			
+def match_sides(c, left, right):
+	if len(left) > 0 and len(right) == 1:
+		if(left[0] == 0 and right[0] == 1):
+			get_centers_bisect(centers[0], centers[1])
+	elif len(left) == 1 and len(right) == 2:
+		if left[0] == 1 and right[1] == 2:
+			get_centers_bisect(centers[1], centers[2])
+	else:
+		table.putNumber("X", 320)
+
 while True:
 
 	ret, frame = cap.read()
 	if frame is None:
 		break;
 
-	cnts = cv.findContours(threshold(frame, lower, upper).copy(), 
+	contours = cv.findContours(threshold(frame, lower, upper).copy(), 
 	cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-	cnts = imutils.grab_contours(cnts)
+	contours = imutils.grab_contours(contours)
 
 	centers = []
+	left = []
+	right = []
+	cnts = []
 
-	if len(cnts) == 0:
+	if len(contours) == 0:
 		table.putNumber("X", 320)
 		print("nothing detected")
 
+	if len(contours) > 0:
+		for c in contours:
+			area = cv.contourArea(c)
+			if area > bounding_area_min:
+				cnts.append(c)
 	if len(cnts) > 0:
 
 		(cnts, boundingBoxes) = sort_contours(cnts)	
 
-		for c in cnts:
+		for contourIndex in range(0,len(cnts)):
 
-			area = cv.contourArea(c)
+			c = cnts[contourIndex]
 		
-			if area > bounding_area_min:
+			rect = cv.minAreaRect(c)
+			box = cv.boxPoints(rect)		
 
-				rect = cv.minAreaRect(c)
-				box = cv.boxPoints(rect)		
-
-				draw_bounding_boxes(c)
-				get_centers(c, frame, centers)
+			draw_bounding_boxes(c)
+			get_centers(c, frame, centers)
 			
-
-
-		#setting defaults		
-		yCoord = window_height
-		yCoordTwo = window_height
-		xCoord = window_width/2 
-		xCoordTwo = window_width/2
-
-
+			angle = rect[2]
+			sort_side(angle, contourIndex)
+			
+			match_sides(c, left, right)
+				
 
 			
 		#calculations for coord for lines array has 0,0 start from 
 		#bottom left, ycoord starts from top left, weird lol
 		#table.putNumber("X", xCoordTwo)
-		print(xCoord)
+		print("left", left)
+		print("right", right)
 	
 					
 	#Making windows
