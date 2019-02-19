@@ -46,7 +46,7 @@ def threshold(frame, lower, upper):
 	frame_HSV = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
 	frame_threshold = cv.inRange(frame_HSV, lower, upper)
 	frame_threshold = cv.erode(frame_threshold, erosionKernel, iterations =1)
-	frame_threshold = cv.dilate(frame_threshold, dilateKernel, iterations=1)
+	frame_threshold = cv.dilate(frame_threshold, dilateKernel, iterations = 1)
 	
 	
 	return (frame_threshold)
@@ -92,8 +92,9 @@ def match_sides(c, left, right):
 
 while True:
 
-	if table.getEntry("Switch") == true:
-		os.system('python right.py')
+	if table.getValue("SwitchSides", False):
+		#os.system('python right.py')
+		print("got switch input!")
 		
 	ret, frame = cap.read()
 	if frame is None:

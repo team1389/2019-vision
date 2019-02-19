@@ -91,9 +91,10 @@ def match_sides(c, left, right):
 
 while True:
 
-	if table.getEntry("Switch") == true:
-		os.system('python right.py')
-		
+	if table.getValue("SwitchSides", False):
+		#os.system('python right.py')
+		print("Got switch input!")
+
 	ret, frame = cap.read()
 	if frame is None:
 		break;
