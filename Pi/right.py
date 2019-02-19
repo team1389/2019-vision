@@ -16,7 +16,7 @@ table = NetworkTables.getTable('vision')
 
 #Setting up argument parser
 parser = argparse.ArgumentParser()
-parser.add_argument("--camera", help = 'camera device number', default = 0, type = int)
+parser.add_argument("--camera", help = 'camera device number', default = 1, type = int)
 args = parser.parse_args()
 
 #Setting up camera
@@ -40,7 +40,6 @@ window_width = 640
 window_height = 480
 
 bounding_area_min = 3000
-
 #Sorts contours from left to right
 def threshold(frame, lower, upper):
 	frame_HSV = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
@@ -54,7 +53,7 @@ def threshold(frame, lower, upper):
 def sort_contours(cnts):
 
 	boundingBoxes = [cv.boundingRect(c) for c in cnts]
-	(cnts, boundingBoxes) = zip(*sorted(zip(cnts, boundingBoxes), key = lambda b:b[1][0], reverse=False))
+	(cnts, boundingBoxes) = zip(*sorted(zip(cnts, boundingBoxes), key = lambda b:b[1][0], reverse=True))
 
 	return (cnts, boundingBoxes)
 	
@@ -72,7 +71,7 @@ def get_centers(cnt, frame, centers):
 def get_centers_bisect(cnt1, cnt2):
 	bisect = ((cnt1 + cnt2) / 2)
 	cv.circle(frame, (int(bisect), int(window_height/2)), 10, (0, 255, 255), -1)
-	table.putNumber("LeftSideX", bisect)
+	table.putNumber("RightSideX", bisect)
 	
 def sort_side(angle, contourIndex):
 	if (angle>= -45):
@@ -88,7 +87,7 @@ def match_sides(c, left, right):
 		if left[0] == 1 and right[1] == 2:
 			get_centers_bisect(centers[1], centers[2])
 	else:
-		table.putNumber("LeftSideX", 320)
+		table.putNumber("RightSideX", 320)
 
 while True:
 
@@ -109,7 +108,7 @@ while True:
 	cnts = []
 
 	if len(contours) == 0:
-		table.putNumber("LeftSideX", 320)
+		table.putNumber("RightSideX", 320)
 		print("nothing detected")
 
 	if len(contours) > 0:
@@ -121,7 +120,7 @@ while True:
 
 		(cnts, boundingBoxes) = sort_contours(cnts)	
 
-		for contourIndex in range(0,len(cnts)):
+		for contourIndex in range(0, len(cnts)):
 
 			c = cnts[contourIndex]
 		
@@ -135,11 +134,7 @@ while True:
 			sort_side(angle, contourIndex)
 			
 			match_sides(c, left, right)
-				
-
-			
-		#calculations for coord for lines array has 0,0 start from 
-		#bottom left, ycoord starts from top left, weird lol
+					
 					
 	#Making windows
 	#cv.imshow(window_capture_name, frame)
