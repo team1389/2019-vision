@@ -16,7 +16,7 @@ table = NetworkTables.getTable('vision')
 
 #Setting up argument parser
 parser = argparse.ArgumentParser()
-parser.add_argument("--camera", help = 'camera device number', default = 1, type = int)
+parser.add_argument("--camera", help = 'camera device number', default = 0, type = int)
 args = parser.parse_args()
 
 #Setting up camera
@@ -31,15 +31,15 @@ erosionKernel = np.ones((3,3), np.uint8)
 dilateKernel = np.ones((0,0), np.uint8)
 
 #Setting up windows
-#window_capture_name = 'Video Capture'
-#window_detection_name = 'Object Detection'
-#cv.namedWindow(window_capture_name)
-#cv.namedWindow(window_detection_name)
+window_capture_name = 'Video Capture'
+window_detection_name = 'Object Detection'
+cv.namedWindow(window_capture_name)
+cv.namedWindow(window_detection_name)
 
 window_width = 640
 window_height = 480
 
-bounding_area_min = 3000
+bounding_area_min = 2600
 #Sorts contours from left to right
 def threshold(frame, lower, upper):
 	frame_HSV = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
@@ -80,20 +80,25 @@ def sort_side(angle, contourIndex):
 		left.append(contourIndex)
 			
 def match_sides(c, left, right):
-	if len(left) > 0 and len(right) == 1:
-		if(left[0] == 0 and right[0] == 1):
+	if len(right) > 0 and len(left) == 1:
+		if(right[0] == 0 and left[0] == 1):
 			get_centers_bisect(centers[0], centers[1])
-	elif len(left) == 1 and len(right) == 2:
-		if left[0] == 1 and right[1] == 2:
+	elif len(right) == 1 and len(left) == 2:
+		if right[0] == 1 and left[1] == 2:
 			get_centers_bisect(centers[1], centers[2])
 	else:
 		table.putNumber("RightSideX", 320)
 
 while True:
 
-	if table.getValue("SwitchSides", False):
-		#os.system('python right.py')
-		print("Got switch input!")
+	print("running right.py")
+
+	if table.getString("State", "right") == "left":
+		table.putString("f", "l")
+		os.system('python left.py &')
+		print("switchsides triggered")
+		sys.exit()
+		
 
 	ret, frame = cap.read()
 	if frame is None:
@@ -110,7 +115,6 @@ while True:
 
 	if len(contours) == 0:
 		table.putNumber("RightSideX", 320)
-		print("nothing detected")
 
 	if len(contours) > 0:
 		for c in contours:
@@ -138,8 +142,8 @@ while True:
 					
 					
 	#Making windows
-	#cv.imshow(window_capture_name, frame)
-	#cv.imshow(window_detection_name, threshold(frame, lower, upper))
+	cv.imshow(window_capture_name, frame)
+	cv.imshow(window_detection_name, threshold(frame, lower, upper))
 
 	key = cv.waitKey(1) & 0xFF
 	if key == ord('q'):

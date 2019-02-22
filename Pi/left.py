@@ -16,7 +16,7 @@ table = NetworkTables.getTable('vision')
 
 #Setting up argument parser
 parser = argparse.ArgumentParser()
-parser.add_argument("--camera", help = 'camera device number', default = 0, type = int)
+parser.add_argument("--camera", help = 'camera device number', default = 1, type = int)
 args = parser.parse_args()
 
 #Setting up camera
@@ -31,15 +31,15 @@ erosionKernel = np.ones((3,3), np.uint8)
 dilateKernel = np.ones((0,0), np.uint8)
 
 #Setting up windows
-#window_capture_name = 'Video Capture'
-#window_detection_name = 'Object Detection'
-#cv.namedWindow(window_capture_name)
-#cv.namedWindow(window_detection_name)
+window_capture_name = 'Video Capture'
+window_detection_name = 'Object Detection'
+cv.namedWindow(window_capture_name)
+cv.namedWindow(window_detection_name)
 
 window_width = 640
 window_height = 480
 
-bounding_area_min = 3000
+bounding_area_min = 2600
 
 #Sorts contours from left to right
 def threshold(frame, lower, upper):
@@ -92,9 +92,12 @@ def match_sides(c, left, right):
 
 while True:
 
-	if table.getValue("SwitchSides", False):
-		#os.system('python right.py')
-		print("got switch input!")
+	print("running left.py")
+
+	if table.getString("State", "left") == "right":
+		os.system('python right.py &')
+		print("switchsides triggered")
+		sys.exit()
 		
 	ret, frame = cap.read()
 	if frame is None:
@@ -111,7 +114,6 @@ while True:
 
 	if len(contours) == 0:
 		table.putNumber("LeftSideX", 320)
-		print("nothing detected")
 
 	if len(contours) > 0:
 		for c in contours:
@@ -137,14 +139,10 @@ while True:
 			
 			match_sides(c, left, right)
 				
-
-			
-		#calculations for coord for lines array has 0,0 start from 
-		#bottom left, ycoord starts from top left, weird lol
 					
 	#Making windows
-	#cv.imshow(window_capture_name, frame)
-	#cv.imshow(window_detection_name, threshold(frame, lower, upper))
+	cv.imshow(window_capture_name, frame)
+	cv.imshow(window_detection_name, threshold(frame, lower, upper))
 
 	key = cv.waitKey(1) & 0xFF
 	if key == ord('q'):
