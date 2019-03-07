@@ -92,11 +92,11 @@ def match_sides(c, left, right):
 
 while True:
 
-	print("running left.py")
-
+	#No networktables case for when there are contours, but the contours are smaller than min
 	if table.getString("State", "left") == "right":
 		os.system('python right.py &')
 		print("switchsides triggered")
+		table.putString("sfdasd", "asdfa")
 		sys.exit()
 		
 	ret, frame = cap.read()

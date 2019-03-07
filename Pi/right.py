@@ -93,6 +93,7 @@ while True:
 
 	print("running right.py")
 
+	#No networktables case for when there are contours, but the contours are smaller than min
 	if table.getString("State", "right") == "left":
 		table.putString("f", "l")
 		os.system('python left.py &')

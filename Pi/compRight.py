@@ -85,6 +85,7 @@ def match_sides(c, left, right):
 
 while True:
 
+	#No networktables case for when there are contours, but the contours are smaller than min
 	if table.getString("State", "right") == "left":
 		os.system('python compLeft.py &')
 		sys.exit()
